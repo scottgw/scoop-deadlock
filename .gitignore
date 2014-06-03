@@ -11,3 +11,4 @@
 *.nav
 dist
 *.ei
+.cabal-sandbox
