@@ -34,7 +34,7 @@ unposExpr (Call trg fName args _) = do
 
   validPrecond (featureReqLk feat)
   validArgs trgP argsP
-  validPostcond argsP (featureEnsLk feat)
+  validPostcond (featureEnsLk feat)
 
   return (typProc $ featureResult feat)
 unposExpr (BinOpExpr _ e1 e2 _) = expr e1 >> expr e2 >> return Dot
@@ -55,8 +55,9 @@ unposExpr s                = error $ "unposExpr:" ++ show s
 validArgs :: Proc -> [Proc] -> Dead ()
 validArgs trg args = do
   r <- getRel
---  lks <- getLocks
+  lks <- getLocks
   guardThrow (all (flip (less r) trg) args) ArgViolation
+  guardThrow (all (`elem` lks) args) ArgViolation
   -- we should also handle the case where an argument is a local processor
   -- declared in the surrounding function
 --  guardThrow (allLessOne r args lks) ArgViolation 
@@ -67,18 +68,21 @@ validPrecond precondExprs = do
   r' <- createExprOrder precondExprs startingRel
   guardThrow (r' `subOrder` r) (NonSubOrder r' r)
 
-validPostcond :: [Proc] -> [Proc] -> Dead ()
-validPostcond args postLks = join $
-  validPostcond' args postLks `fmap` getRel `ap` getLocks
+validPostcond :: [Proc] -> Dead ()
+validPostcond postLks =
+  do lks <- getLocks
+     r <- getRel
+     guardThrow (and (zipWith (less r) postLks lks)) PostcondSubset
+  -- validPostcond' args postLks `fmap` getRel `ap` getLocks
 
-validPostcond' ::[Proc] -> [Proc] -> ProcOrder -> [Proc] -> Dead ()
-validPostcond' args postLks r lks =
-    guardThrow (null (locksTaken args) || postLks `allLess` lows) PostcondArgs >>
-    guardThrow (null postLks || highs `allLess` lks) PostcondSubset
-    where allLess these lessThanThese = all (lessOne' r lessThanThese) these
-          lows  = lowest r args
-          highs = highest r postLks
-          locksTaken = filter (/= Dot)
+-- validPostcond' ::[Proc] -> [Proc] -> ProcOrder -> [Proc] -> Dead ()
+-- validPostcond' args postLks r lks =
+--     guardThrow (null (locksTaken args) || postLks `allLess` lows) PostcondArgs >>
+--     guardThrow (null postLks || highs `allLess` lks) PostcondSubset
+--     where allLess these lessThanThese = all (lessOne' r lessThanThese) these
+--           lows  = lowest r args
+--           highs = highest r postLks
+--           locksTaken = filter (/= Dot)
 
 lessOne' :: (Ord a, Show a) => OrderRel a -> [a] -> a -> Bool
 lessOne' r = flip (lessOne r)

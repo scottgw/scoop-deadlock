@@ -16,48 +16,71 @@ module Deadlock.OrderRel
     , subOrder
     ) where
 
-import qualified Data.Map as M
-import Data.Map (Map)
-import Data.Set as S (Set, isSubsetOf, insert, empty, member
-                , singleton, filter, null, toList, foldl)
+import qualified Data.Graph.Inductive as G
+-- import qualified Data.Map as Map
+-- import           Data.Map (Map)
+import           Data.Maybe
+import qualified Data.Set as Set
+import           Data.Set (Set)
 
-type Rel a = Map a (Set a)
-data OrderRel a = OrderRel { ordMap :: Rel a
-                           , ordTop :: a
-                           , ordBot :: a
-                           } deriving Show
+type Rel a = G.Gr a ()
+
+-- | Relation operations
+emptyRel' :: Rel a
+emptyRel' = G.empty
+
+data OrderRel a =
+  OrderRel { ordRel :: Rel a
+           , ordTop :: G.LNode a
+           , ordBot :: G.LNode a
+           } deriving Show
 
 {-
 Internal implementation
 -}
 
-updMap :: (Rel a -> Rel a) -> OrderRel a -> OrderRel a
-updMap f o = o {ordMap = f (ordMap o)}
+nodeId :: Eq a => OrderRel a -> a -> Maybe G.Node
+nodeId o x = lookup x (map (\ (a, b) -> (b, a)) (graphNodes o))
 
-liftMap :: (Rel a -> b) -> OrderRel a -> b
-liftMap = (. ordMap)
+graphNodes :: OrderRel a -> [G.LNode a]
+graphNodes = G.labNodes . ordRel
 
-ordInsert :: Ord a => a -> Set a -> OrderRel a -> OrderRel a
-ordInsert k v = updMap (M.insert k v)
+hasNode :: Eq a => OrderRel a -> a -> Bool
+hasNode o x = isJust (nodeId o x)
 
-ordLookup :: Ord a => a -> OrderRel a -> Maybe (Set a)
-ordLookup k = liftMap (M.lookup k)
+connected :: Eq a => OrderRel a -> a -> a -> Bool
+connected o a b =
+  let Just na = nodeId o a
+      Just nb = nodeId o b
+  in na `elem` G.pre (ordRel o) nb
 
-oneInsert :: Ord a => a -> a -> OrderRel a -> OrderRel a
-oneInsert k v rel 
-    | k == v    = rel
-    | otherwise = ordInsert k (insert v s) rel
-    where
-      s = maybe (error "oneInsert: no key") id (ordLookup k rel)
+elems :: OrderRel a -> [a]
+elems (OrderRel o (_, top) (_, bot)) = top : bot : map snd (G.labNodes o)
 
-between :: Ord a => a ->  OrderRel a -> OrderRel a
-between k rel = (oneInsert k (ordTop rel) . oneInsert (ordBot rel) k) rel
+insNode' :: Eq a => a -> OrderRel a -> OrderRel a
+insNode' x o
+  | hasNode o x = o
+  | otherwise =
+    let [i] = G.newNodes 1 (ordRel o)
+        n = (i, x)
+        add o' = o' {ordRel = G.trc (G.insNode n (ordRel o'))}
+        go = insEdge' (snd $ ordBot o) x.
+             insEdge' x (snd $ ordTop o) .
+             add
+    in go o
 
-unsafeAddLess :: Ord a => OrderRel a -> a -> a -> OrderRel a
-unsafeAddLess rel a b
-    | a /= b    = (between a . between b . oneInsert a b) rel'
-    | otherwise = rel'
-    where rel' = addToDom (addToDom rel b) a
+insEdge' :: Eq a => a -> a -> OrderRel a -> OrderRel a
+insEdge' x y o =
+  case (nodeId o x, nodeId o y) of
+    (Just nx, Just ny) -> o {ordRel = G.trc (G.insEdge (nx, ny, ()) (ordRel o))}
+    _ -> error "insEdge': one of the nodes doesn't exist"
+
+unsafeAddLess :: Ord a => a -> a -> OrderRel a -> OrderRel a
+unsafeAddLess x y o =
+  let go = insEdge' x y .
+           insNode' y .
+           insNode' x
+  in go o
 
 
 {-
@@ -66,34 +89,32 @@ External interface functions
 
 emptyRel :: Ord a => a -> a -> OrderRel a
 emptyRel top bot = 
-    let r = (M.insert top empty . M.insert bot (singleton top)) M.empty
-    in OrderRel r top bot
+    let
+      b = (0, bot)
+      t = (1, top)
+      g = G.mkGraph [t, b] [(0, 1, ())]
+    in OrderRel g t b
 
 add :: (Show a, Ord a) => OrderRel a -> a -> OrderRel a
-add r a = addLess r a (ordTop r)
+add o a = insNode' a o
 
 addLesses :: (Show a, Ord a) => OrderRel a -> [(a,a)] -> OrderRel a
 addLesses = foldr (uncurry addLess')
 
 addLess :: (Show a, Ord a) => OrderRel a -> a -> a -> OrderRel a
-addLess r a b 
-    | not (inDom r a && inDom r b) = unsafeAddLess r a b
-    | less r b a && a /= b = error "safeAddLess: b already less than a"
-    | otherwise            = unsafeAddLess r a b
+addLess o a b = unsafeAddLess a b o
 
 addLess' :: (Show a, Ord a) => a -> a -> OrderRel a -> OrderRel a
 addLess' a b rel = addLess rel a b
 
 addToDom :: Ord a => OrderRel a -> a -> OrderRel a
-addToDom rel a = maybe (ordInsert a empty rel) (const rel) (ordLookup a rel)
+addToDom = flip insNode'
                                
 less :: (Show a, Ord a) => OrderRel a -> a -> a -> Bool
-less rel a c
-    | a == c || c `member` img = True
-    | otherwise                = not . S.null . S.filter (greater rel c) $ img
-    where img = case ordLookup a rel of
-                  Nothing -> error $ "less: no key " ++ show a
-                  Just i  -> i
+less o a b
+  | hasNode o a && hasNode o b = connected o a b
+  | hasNode o a = False -- This preserves the old behaviour, which we require
+  | otherwise = error $ "less: missing key " ++ show (nodeId o a, nodeId o b, a, b, o)
 
 greater :: (Show a, Ord a) => OrderRel a -> a -> a -> Bool
 greater rel a b = less rel b a
@@ -111,48 +132,29 @@ lessAll' :: (Show a, Ord a) => OrderRel a -> [a] -> a -> Bool
 lessAll' r = flip (lessAll r)
 
 dom :: Ord a => OrderRel a -> Set a
-dom = liftMap M.keysSet
+dom o = Set.fromList (map snd (G.labNodes $ ordRel o))
 
 inDom :: Ord a => OrderRel a -> a -> Bool
-inDom r a = a `member` dom r
+inDom r a = a `Set.member` dom r
 
 incomparable :: (Show a, Ord a) => OrderRel a -> a -> a -> Bool
 incomparable r a b = not (less r a b || less r b a)
 
 instance (Show a, Ord a) => Eq (OrderRel a) where
-    oa == ob 
-        | dom oa == dom ob = all (uncurry imp) axa
-        | otherwise        = False
-        where
-          imp a b = less oa a b == less ob a b
-          as  = toList (dom oa)
-          axa = [(a1,a2) | a1 <- as, a2 <- as]
+  OrderRel o1 top1 bot1 == OrderRel o2 top2 bot2 =
+    o1 == o2 &&
+    top1 == top2 &&
+    bot1 == bot2
 
 instance (Show a, Ord a) => Ord (OrderRel a) where
-    a <= b 
-        | dom a `isSubsetOf` dom b = all (uncurry imp) axa
-        | otherwise      = False
-        where
-          imp x y = less a x y <= less b x y
-          as  = toList (dom a)
-          axa = [(a1,a2) | a1 <- as, a2 <- as]
+  o1 <= o2 =
+    and [ test a b |
+          a <- elems o1,
+          b <- elems o1]
+    where
+      test a b
+        | hasNode o2 a && hasNode o2 b =
+          connected o1 a b <= connected o2 a b
+        | otherwise = False
 
-setAll :: Ord a => (a -> Bool) -> Set a -> Bool
-setAll p = S.foldl (\ acc x -> p x && acc) True
-
-setAllPair :: Ord a => (a -> a -> Bool) -> Set a -> Bool
-setAllPair p as = setAll (\ x -> setAll (\y -> p x y) as) as
-
-subOrder :: (Show a, Ord a) => OrderRel a -> OrderRel a -> Bool
-subOrder a b = setAllPair (\ x y  -> less a x y <= less b x y) as
-  where
-    as = dom a
-
-
--- subOrder a b 
---     | dom a `isSubsetOf` dom b = all (uncurry imp) axa
---     | otherwise      = False
---     where
---       imp x y = less a x y <= less b x y
---       as  = toList (dom a)
---       axa = [(a1,a2) | a1 <- as, a2 <- as]
+subOrder r1 r2 = r1 <= r2

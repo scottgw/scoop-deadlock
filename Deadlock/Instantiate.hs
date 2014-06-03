@@ -36,7 +36,7 @@ checkScope' ci =
 checkScopeFeat :: [Proc] -> FeatureI -> Maybe DeadError
 checkScopeFeat ps f = 
     let argsProcs = concat $ catMaybes $ map declProcs (featureArgs f)
-        defProcs  = ps ++ argsProcs
+        defProcs  = ps ++ argsProcs ++ featureProcs f
         res       = maybe [] id (getProcs $ featureResult f)
         allProcs  = featureEnsLk f ++ res
         undefd    = filter (not . flip elem defProcs) allProcs

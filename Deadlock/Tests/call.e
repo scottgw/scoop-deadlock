@@ -12,6 +12,6 @@ feature
 
   foo (x : separate <xp> CALL) <xp>
     do
-    ensure-locks <xp>
+    -- ensure-locks <xp>
     end
 end

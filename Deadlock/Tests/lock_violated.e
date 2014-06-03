@@ -1,4 +1,4 @@
-class LOCK_VIOLATED <yp>
+class LOCK_VIOLATED <yp, zp>
 
 feature
   y : separate <yp> LOCK_VIOLATED
@@ -8,10 +8,10 @@ feature
       < yp < dot >
     do
       bar (y)
-    ensure-locks <xp>
+    ensure-locks <yp>
     end
 
-  bar (z : separate <zp> LOCK_VIOLATED) <zp> 
+  bar ()
     do
     ensure-locks <zp>
     end
