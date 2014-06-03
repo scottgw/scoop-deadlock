@@ -1,0 +1,13 @@
+*.o
+*.hi
+*.s
+*.bc
+*.hs~
+*.toc
+*.aux
+*.snm
+*.log
+*.pdf
+*.nav
+dist
+*.ei

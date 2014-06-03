@@ -1,0 +1,20 @@
+Name:       elbcc
+Version:    0.0
+Author:     Scott West
+Maintainer: scott.west@inf.ethz.ch
+Build-Type: Simple
+Cabal-Version: >=1.2
+
+Executable elbcc
+  Main-is: Main.hs
+  Build-Depends: 
+    parsec, 
+    bytestring,
+    base >= 4, 
+    array,
+    containers, 
+    pretty,
+    mtl,
+    cmdargs,
+    llvm
+  ghc-options: -Wall

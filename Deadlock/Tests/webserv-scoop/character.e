@@ -1,0 +1,6 @@
+class CHARACTER
+
+feature
+
+end
+

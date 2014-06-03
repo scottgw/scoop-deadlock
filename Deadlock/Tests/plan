@@ -1,0 +1,10 @@
+decl            : Success ;
+empty           : Success ;
+call            : Success ;
+decl_unknown    : Failure -> ProcNotInScope c ;
+decl_cycle      : Failure -> OrderCycle ;
+lock_violated   : Failure -> PostcondSubset;
+multi_a         : Success ;
+undecl_proc_var : Failure -> ProcNotInScope undecl ;
+sub_lock        : Success ;
+sub_lock_vio    : Failure -> LockViolated a;

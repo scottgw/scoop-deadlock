@@ -1,0 +1,27 @@
+Name:       deaddemo
+Version:    0.0
+Author:     Scott West
+Maintainer: scott.west@inf.ethz.ch
+Build-Type: Simple
+Cabal-Version: >=1.2
+
+Executable deaddemo
+  Main-is: Demo/Main.hs
+  Build-Depends: 
+    parsec, 
+    filepath,
+    directory,
+    bytestring,
+    base, 
+    array,
+    containers, 
+    pretty,
+    mtl,
+    cmdargs,
+    gtk,
+    gtksourceview2,
+    glade,
+    uri,
+    fgl,
+    graphviz
+  ghc-options: -Wall

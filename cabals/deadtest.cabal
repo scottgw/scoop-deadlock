@@ -1,0 +1,22 @@
+Name:       deadtest
+Version:    0.0
+Author:     Scott West
+Maintainer: scott.west@inf.ethz.ch
+Build-Type: Simple
+Cabal-Version: >=1.2
+
+Executable deadtest
+  Main-is: Deadlock/Test.hs
+  Build-Depends: 
+    base >= 4,
+    parsec,
+    process,
+    language-dot,
+    graphviz,
+    fgl,
+    bytestring,
+    base,
+    containers, 
+    pretty,
+    mtl
+  ghc-options: -Wall
