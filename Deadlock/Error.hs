@@ -21,17 +21,15 @@ parseErrorToDead :: ParseError -> PosDeadError
 parseErrorToDead e = 
     attachPos (errorPos e) (DeadErrorString (show e))
 
-data DeadError = LockViolated Proc
-               | ProcNotInScope Proc
-               | NonSubOrder ProcOrder ProcOrder
+data DeadError = ProcNotInScope Proc
                | NoClassProc
                | InstProcsMismatch
                | OrderCycle Proc Proc ProcOrder
                | DeadErrorString String 
-               | Precond
-               | ArgViolation
-               | PostcondSubset
-               | PostcondArgs
+               | ArgNotLessTarget Proc
+               | ArgNotInContextLocks Proc
+               | CallLocksNotLessContextLocks Proc
+               | CallOrdNotInContextOrd ProcOrder ProcOrder
                | NoError
                  deriving (Show, Eq)
 

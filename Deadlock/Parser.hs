@@ -56,30 +56,24 @@ errorTags :: Parser [DeadError]
 errorTags =  errorTag `sepBy` reservedOp ","
 
 errorTag :: Parser DeadError
-errorTag = lockVio <|> procScope <|> orderCycle <|> choice errorParsers
+errorTag = orderCycle <|> choice errorParsers
+  where  
+    errors = [("ArgNotLessTarget", ArgNotLessTarget),
+              ("ArgNotInContextLocks", ArgNotInContextLocks),
+              ("CallLocksNotLessContextLocks", CallLocksNotLessContextLocks),
+              ("ProcNotInScope", ProcNotInScope)
+             ]
 
-errorParsers :: [Parser DeadError]
-errorParsers = map mkErrorParser errors
+    procP = fmap Proc identifier
 
-mkErrorParser :: DeadError -> Parser DeadError
-mkErrorParser e = reserved (errorStr e) >> return e
+    errorParsers = map mkErrorParser errors
 
-proc = fmap Proc identifier
-
-procScope :: Parser DeadError
-procScope = reserved "ProcNotInScope" >> 
-            fmap ProcNotInScope proc
-
-lockVio :: Parser DeadError
-lockVio = reserved "LockViolated" >> fmap (LockViolated . Proc) identifier
+    mkErrorParser (s, e) =
+      do reserved s
+         p <- procP
+         return (e p)
 
 orderCycle :: Parser DeadError
 orderCycle = reserved "OrderCycle" >>
              return (let noProc = Proc "noProc" in
                       OrderCycle noProc noProc (emptyRel noProc noProc))
-
-errors :: [DeadError]
-errors = [ArgViolation
-         ,PostcondSubset
-         ,PostcondArgs
-         ]

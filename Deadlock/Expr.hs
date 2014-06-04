@@ -56,45 +56,32 @@ validArgs :: Proc -> [Proc] -> Dead ()
 validArgs trg args = do
   r <- getRel
   lks <- getLocks
-  guardThrow (all (flip (less r) trg) args) ArgViolation
-  guardThrow (all (`elem` lks) args) ArgViolation
-  -- we should also handle the case where an argument is a local processor
-  -- declared in the surrounding function
---  guardThrow (allLessOne r args lks) ArgViolation 
+
+  let
+    checkArgLessTarget a = guardThrow (less r a trg) (ArgNotLessTarget a)
+    checkInLocks a = guardThrow (a == Dot || a `elem` lks) (ArgNotInContextLocks a)
+
+  mapM_ checkArgLessTarget args
+  mapM_ checkInLocks args
 
 validPrecond :: [ProcExpr] -> Dead ()
 validPrecond precondExprs = do
   r <- getRel
   r' <- createExprOrder precondExprs startingRel
-  guardThrow (r' `subOrder` r) (NonSubOrder r' r)
+  guardThrow (r' `subOrder` r) (CallOrdNotInContextOrd r' r)
 
 validPostcond :: [Proc] -> Dead ()
 validPostcond postLks =
   do lks <- getLocks
      r <- getRel
-     guardThrow (and (zipWith (less r) postLks lks)) PostcondSubset
-  -- validPostcond' args postLks `fmap` getRel `ap` getLocks
-
--- validPostcond' ::[Proc] -> [Proc] -> ProcOrder -> [Proc] -> Dead ()
--- validPostcond' args postLks r lks =
---     guardThrow (null (locksTaken args) || postLks `allLess` lows) PostcondArgs >>
---     guardThrow (null postLks || highs `allLess` lks) PostcondSubset
---     where allLess these lessThanThese = all (lessOne' r lessThanThese) these
---           lows  = lowest r args
---           highs = highest r postLks
---           locksTaken = filter (/= Dot)
-
-lessOne' :: (Ord a, Show a) => OrderRel a -> [a] -> a -> Bool
-lessOne' r = flip (lessOne r)
+     let
+       checkLessAllLks l = guardThrow (all (less r l) lks) (CallLocksNotLessContextLocks l)
+     mapM_ checkLessAllLks postLks
 
 localM :: MonadReader r m => (r -> m r) -> m a -> m a
 localM f m = do
   x <- ask >>= f
   local (const x) m
-
-lowest, highest :: (Ord a, Show a) => OrderRel a -> [a] -> [a]
-lowest  r ps = nub (filter (flip (lessOne r) ps) ps)
-highest r ps = nub (filter (flip (greaterOne r) ps) ps)
 
 type MProcs = Maybe [Proc]
 

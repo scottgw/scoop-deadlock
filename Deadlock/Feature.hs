@@ -23,10 +23,7 @@ import Deadlock.Instantiate
 import Deadlock.Stmt
 
 checkFeature :: TFeature -> DeadFeature ()
-checkFeature = checkFeatPDecl
-
-checkFeatPDecl :: TFeature -> DeadFeature ()
-checkFeatPDecl f =
+checkFeature f =
     local (updRel (addProcs (featureProcs f)))
               (checkFeatContrs f)
 

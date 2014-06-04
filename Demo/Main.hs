@@ -107,7 +107,7 @@ expandedError :: ErrorStore -> TreePath -> TreeViewColumn -> IO ()
 expandedError es [index] _ = do
   e <- listStoreGetValue es index
   case contents e of
-    NonSubOrder a b -> showOrders a b
+    CallOrdNotInContextOrd a b -> showOrders a b
     _ -> return ()
 
 showOrders :: ProcOrder -> ProcOrder -> IO ()
