@@ -22,3 +22,25 @@ Executable deadtest
     pretty,
     mtl
   ghc-options: -Wall
+
+
+Executable deaddemo
+  Main-is: Demo/Main.hs
+  Build-Depends: 
+    parsec, 
+    filepath,
+    directory,
+    bytestring,
+    base, 
+    array,
+    containers, 
+    pretty,
+    mtl,
+    cmdargs,
+    gtk >= 0.12.5.7,
+    gtksourceview2,
+    glade,
+    uri,
+    fgl,
+    graphviz
+  ghc-options: -Wall
