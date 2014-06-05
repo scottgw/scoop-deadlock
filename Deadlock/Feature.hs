@@ -24,7 +24,7 @@ import Deadlock.Stmt
 
 checkFeature :: TFeature -> DeadFeature ()
 checkFeature f =
-    local (updRel (addProcs (featureProcs f)))
+    local (updRel (addProcs $ featureProcs f) . updFeatName (featureName f))
               (checkFeatContrs f)
 
 checkFeatContrs :: TFeature -> DeadFeature ()

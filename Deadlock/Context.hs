@@ -40,6 +40,8 @@ appendLocks ls ctx =
       outScope = filter (not . inDom r) ls
       r        = ctxRel ctx
 
+updFeatName name ctx = ctx {ctxFeatName = name}
+
 updRel :: (ProcOrder -> ProcOrder) -> ProcDeadCtx -> ProcDeadCtx
 updRel f ctx = ctx {ctxRel = f (ctxRel ctx)}
 
@@ -65,6 +67,7 @@ mkDeadCtx cis rel =
     , ctxVars  = M.empty
     , ctxRel   = rel
     , ctxPos   = initialPos "class"
+    , ctxFeatName = "no feature"
     , ctxRes   = NoType
     , ctxLocks = [] -- took Dot out of here, but would be nice to leave it in,
                     -- and correct this through the reducedLocks function

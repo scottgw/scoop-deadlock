@@ -49,15 +49,15 @@ opTypes r@(RelOp _ _) = relOpTyper r
 castTyp :: Typ -> TExpr -> TExpr
 castTyp DoubleType te = case T.texprTyp (contents te) of
                           DoubleType -> te
-                          _          -> attachPos (position te) 
+                          _          -> attachPos' (position te) 
                                         (T.Cast DoubleType te)
 castTyp IntType    te = case T.texprTyp (contents te) of
                           IntType -> te
-                          _       -> attachPos (position te) (T.Cast IntType te)
+                          _       -> attachPos' (position te) (T.Cast IntType te)
 castTyp _          te = case T.texprTyp (contents te) of
-                          IntType    -> attachPos (position te) 
+                          IntType    -> attachPos' (position te) 
                                         (T.Cast IntType te)
-                          DoubleType -> attachPos (position te) 
+                          DoubleType -> attachPos' (position te) 
                                         (T.Cast DoubleType te)
                           _          -> te
 

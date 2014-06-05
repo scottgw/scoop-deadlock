@@ -19,7 +19,7 @@ type PosDeadError = Pos DeadError
 
 parseErrorToDead :: ParseError -> PosDeadError
 parseErrorToDead e = 
-    attachPos (errorPos e) (DeadErrorString (show e))
+    attachPos' (errorPos e) (DeadErrorString (show e))
 
 data DeadError = ProcNotInScope Proc
                | NoClassProc

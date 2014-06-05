@@ -35,7 +35,7 @@ currentPos :: Typing SourcePos
 currentPos = pos `fmap` ask
 
 tagPos :: a -> Typing (Pos a)
-tagPos a = currentPos >>= return . flip attachPos a
+tagPos a = currentPos >>= return . flip attachPos' a
 
 setPosition :: SourcePos -> Typing a -> Typing a
 setPosition p = local (\ c -> c {pos = p})

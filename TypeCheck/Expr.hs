@@ -29,13 +29,13 @@ convertVarCall vc trg = do
     Nothing -> 
         do
           vTyp <- typeOfVar vc
-          return (attachPos p <$> (T.Var vc <$> vTyp))
+          return (attachPos' p <$> (T.Var vc <$> vTyp))
     Just trg' -> compCall vc trg' p <$> resolveIFace (T.texpr trg')
            
 
 compCall :: String -> TExpr -> SourcePos -> ClasInterface -> Maybe TExpr
 compCall vc trg p ci = 
-    attachPos p <$> (asAccess trg ci vc <|> 
+    attachPos' p <$> (asAccess trg ci vc <|> 
                      asCall trg ci vc)
 
 asAccess :: TExpr -> ClasInterface -> String -> Maybe T.UnPosTExpr

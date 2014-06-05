@@ -85,7 +85,7 @@ treeDotStuff errorBox listStore = do
   posText <- cellRendererTextNew
   cellLayoutPackStart posCol posText True
   cellLayoutSetAttributes posCol posText listStore 
-                              (\ e -> [cellText := show (position e)])
+                              (\ e -> [cellText := show (position e, posFeatureName e)])
 
   errorCol <- treeViewColumnNew
   treeViewColumnSetTitle errorCol "Error"

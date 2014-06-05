@@ -56,7 +56,7 @@ checkClassM cis c =
          (Left e, _  ) -> Left [e]
 
 stringToError :: Clas -> String -> [PosDeadError]
-stringToError clas  = (:[]) . attachPos (initialPos file) . DeadErrorString
+stringToError clas  = (:[]) . attachPos' (initialPos file) . DeadErrorString
     where file = className clas ++ ".e"
 
 deadCheck' :: Clas -> [ClasInterface] -> Maybe [PosDeadError]
@@ -80,7 +80,7 @@ deadCheck bs =
             Right cs -> return $ deadCheck' c' (map addImplLocks cs)
 
 fromParseError :: ParseError -> PosDeadError
-fromParseError pe = attachPos (errorPos pe) (convErr pe)
+fromParseError pe = attachPos' (errorPos pe) (convErr pe)
     where
       convErr = DeadErrorString . showErrorMessages "or" "unknown parse error" 
                 "expecting" "unexpected" "end of input" . errorMessages

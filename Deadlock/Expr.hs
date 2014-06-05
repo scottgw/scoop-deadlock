@@ -23,6 +23,8 @@ import Deadlock.Error
 import Deadlock.Monad
 import Deadlock.Instantiate
 
+import Debug.Trace
+
 expr :: TExpr -> Dead Proc
 expr te = local (\ ctx -> ctx {ctxPos = position te}) (unposExpr $ contents te)
 
@@ -68,7 +70,7 @@ validPrecond :: [ProcExpr] -> Dead ()
 validPrecond precondExprs = do
   r <- getRel
   r' <- createExprOrder precondExprs startingRel
-  guardThrow (r' `subOrder` r) (CallOrdNotInContextOrd r' r)
+  guardThrow (r' `subOrder` r) (trace (show precondExprs) CallOrdNotInContextOrd r' r)
 
 validPostcond :: [Proc] -> Dead ()
 validPostcond postLks =

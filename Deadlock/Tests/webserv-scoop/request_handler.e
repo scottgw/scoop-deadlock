@@ -19,15 +19,15 @@ feature
 	sock : separate <p> NETWORK_SOCKET_HANDLER
   local_sock : separate <p> NETWORK_SOCKET_HANDLER
 
-	execute
+  execute
 		do
 			from until False
 			loop
-        load_socket (sock)
+            load_socket (sock)
 				handle_request (local_sock)
-        close_socket (local_sock)
+            close_socket (local_sock)
 			end
-    ensure-locks <p>
+      ensure-locks <p>
 		end
 
   load_socket (a_sock : separate <p> NETWORK_SOCKET_HANDLER)
@@ -86,6 +86,7 @@ feature
 
 
 	process_request (req : HTTP_REQUEST)
+    require-locks < p < dot >
 		do
 			if req.method = req.get_id then
 				respond_with_uri (req.method_uri)
@@ -95,6 +96,7 @@ feature
 		end
 
 	respond_with_uri (filename : STRING)
+    require-locks < p < dot >
 		local
 			resp      : HTTP_RESPONSE
 			resp_200  : HTTP_200
@@ -124,6 +126,7 @@ feature
 			end
 
 			resp.send_response
+    ensure-locks <p>
 		end
 
 end

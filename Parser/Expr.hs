@@ -49,7 +49,7 @@ prefix name fun =
     Prefix (do
              p <- getPosition
              reservedOp name
-             return (\ a -> attachPos p (fun a))
+             return (\ a -> attachPos' p (fun a))
            )
 
 binary :: Stream s m Char => 
@@ -58,7 +58,7 @@ binary name fun =
     Infix (do
             p <- getPosition
             reservedOp name
-            return (\ a b -> attachPos p (fun a b))
+            return (\ a b -> attachPos' p (fun a b))
           )
 
 factor :: Parser Expr
@@ -127,7 +127,7 @@ qualCall' target = do
   reservedOp "."  
   i    <- identifier
   args <- option [] argsP
-  let newTarget = attachPos (position target) (QualCall target i args)
+  let newTarget = attachPos' (position target) (QualCall target i args)
   option (contents newTarget) (qualCall' newTarget)
 
 resultVar :: Parser UnPosExpr

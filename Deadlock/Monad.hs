@@ -28,6 +28,7 @@ data DeadContext a =
     , ctxPos   :: SourcePos
     , ctxEnv   :: Map String ClasInterface
     , ctxLocks :: [Proc]
+    , ctxFeatName :: String
     } deriving Show
 
 type ProcDeadCtx = DeadContext Proc
@@ -54,7 +55,10 @@ runFeature m ctx =
 
 throwPosError :: (MonadReader ProcDeadCtx m, MonadError (Pos e) m) =>
               e -> m a
-throwPosError e = (flip attachPos e . ctxPos) `liftM` ask >>= throwError
+throwPosError e =
+  do ctx <- ask
+     let e' = attachPos (ctxFeatName ctx) (ctxPos ctx) e
+     throwError e'
 
 guardThrow :: (MonadReader ProcDeadCtx m, MonadError (Pos e) m) 
               => Bool -> e -> m ()
