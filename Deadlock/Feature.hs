@@ -1,5 +1,6 @@
 module Deadlock.Feature
     ( checkFeature
+    , reconstructFeature
     , addProcs
     , addDecls
     , liftError
@@ -20,28 +21,39 @@ import Deadlock.OrderRel
 import Deadlock.Context
 import Deadlock.Monad
 import Deadlock.Instantiate
+import Deadlock.Reconstruct
 import Deadlock.Stmt
 
 checkFeature :: TFeature -> DeadFeature ()
-checkFeature f =
-    local (updRel (addProcs $ featureProcs f) . updFeatName (featureName f))
-              (checkFeatContrs f)
+checkFeature = overFeature stmt
 
-checkFeatContrs :: TFeature -> DeadFeature ()
-checkFeatContrs f =
-    let argsLks  = featureEnsLk f ++ argProcs (featureArgs f)
-        prs  = featureReqLk f
-    in 
+reconstructFeature :: TFeature -> DeadFeature (OrderRel Proc, [Proc])
+reconstructFeature f =
+  liftM2 (,) (overFeature reconstructOrder f)
+             (overFeature reconstructLocks f)
+
+overFeature :: (TStmt -> DeadStmt a) -> TFeature -> DeadFeature a
+overFeature f feat =
+  local (updRel (addProcs procs) . updFeatName name) checkFeatContrs
+  where
+    name = featureName feat
+    procs = featureProcs feat
+    args = featureArgs feat
+    argsLks  = featureEnsLk feat ++ argProcs args
+    prs  = featureReqLk feat
+    
+    checkFeatContrs =
       localM (updRelM (addExprs (prs ++ lessDotExprs argsLks)) <=< 
                       liftError . appendLocks argsLks)
-             (checkFeatBody f)
+             checkFeatBody
 
-checkFeatBody :: TFeature -> DeadFeature ()
-checkFeatBody f =
-    let fImpl = featureImpl f
-        upd   = local (updLocals f . updArgs f . addResult f)
-        updM  = localM (updRelM (liftError . addDecls (featureLocalProcs fImpl)))
-    in (upd . updM) (lift . stmt . featureBody $ fImpl)
+    checkFeatBody =
+      let fImpl = featureImpl feat
+          upd   = local (updLocals feat . updArgs feat . addResult feat)
+          updM  = localM (updRelM (liftError . addDecls (featureLocalProcs fImpl)))
+      in (upd . updM) (lift . f . featureBody $ fImpl)
+
+
 
 lessDotExprs :: [Proc] -> [ProcExpr]
 lessDotExprs = map (flip LessThan Dot)

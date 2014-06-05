@@ -8,7 +8,9 @@ import qualified Data.ByteString as B
 import Text.Parsec.Error
 
 import AST.Class
+import AST.Decl
 import AST.Typ
+import AST.Feature
 import AST.Position
 
 import TypeCheck.Class
@@ -21,6 +23,7 @@ import Deadlock.Error
 import Deadlock.Feature
 import Deadlock.Context
 import Deadlock.Monad
+import Deadlock.OrderRel
 import Deadlock.Instantiate
 
 import Generate.DepGen
@@ -41,11 +44,26 @@ setClassCtx c ctx =
 updClassConst :: TClass -> ProcDeadCtx -> DeadFeature ProcDeadCtx
 updClassConst = updRelM . (\x y -> liftError (addDecls x y)) . procExpr
 
+overClass :: ([TFeature] -> DeadFeature a) -> TClass -> DeadFeature a
+overClass f c =
+  localM (setClassCtx c) (localM (updClassConst c) (f (features c)))
+
+reconstructClass :: TClass -> DeadFeature TClass
+reconstructClass c =
+  do fs <- reconFeatures c
+     return (c {features = fs})
+  where
+    reconFeatures = overClass (mapM reconFeature)
+    reconFeature f =
+      do (ord, lks) <- reconstructFeature f
+         return (f {featureReqLk = featureReqLk f ++ toProcExprs ord,
+                    featureEnsLk = featureEnsLk f ++ lks})
+
+    toProcExprs :: OrderRel Proc -> [ProcExpr]
+    toProcExprs ord = undefined
+
 checkClass :: TClass -> DeadFeature ()
-checkClass c = localM (setClassCtx c)
-               (localM (updClassConst c)
-                (mapM_ checkFeature (features c))
-               )
+checkClass = reconstructClass >=> overClass (mapM_ checkFeature)
 
 checkClassM :: [ClasInterface] -> TClass -> Either [PosDeadError] ()
 checkClassM cis c = 

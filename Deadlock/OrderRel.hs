@@ -1,6 +1,7 @@
 module Deadlock.OrderRel 
     ( OrderRel (..)
     , emptyRel
+    , unionRel
     , add
     , addLess
     , addLess'
@@ -94,6 +95,13 @@ emptyRel top bot =
       t = (1, top)
       g = G.mkGraph [t, b] [(0, 1, ())]
     in OrderRel g t b
+
+unionRel :: Ord a => OrderRel a -> OrderRel a -> OrderRel a
+unionRel (OrderRel g1 top1 bot1) (OrderRel g2 top2 bot2) =
+  let withNodes = G.insNodes (G.labNodes g2) g1
+      withEdges = G.insEdges (G.labEdges g2) withNodes
+  in 
+   OrderRel (G.trc withEdges) top1 bot1
 
 add :: (Show a, Ord a) => OrderRel a -> a -> OrderRel a
 add o a = insNode' a o
