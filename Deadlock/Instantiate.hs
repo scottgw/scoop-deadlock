@@ -43,7 +43,7 @@ checkScopeFeat ps f =
     in 
       case undefd of
         []    -> Nothing
-        (u:_) -> Just (ProcNotInScope u)
+        (u:_) -> Just (ProcNotInScope u ps)
 
 instantiateSep :: Typ -> ClasInterface -> Dead ClasInterface
 instantiateSep (Sep p ps _) ci

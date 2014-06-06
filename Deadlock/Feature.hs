@@ -24,6 +24,8 @@ import Deadlock.Instantiate
 import Deadlock.Reconstruct
 import Deadlock.Stmt
 
+import Debug.Trace
+
 checkFeature :: TFeature -> DeadFeature ()
 checkFeature = overFeature stmt
 
@@ -41,17 +43,27 @@ overFeature f feat =
     args = featureArgs feat
     argsLks  = featureEnsLk feat ++ argProcs args
     prs  = featureReqLk feat
+    fImpl = featureImpl feat
+    body  = featureBody fImpl
+
+    getProcFromDecl (SubTop p) = p
+    getProcFromDecl (CreateLessThan p _q) = p
+    localProcs = map getProcFromDecl (featureLocalProcs fImpl)
     
     checkFeatContrs =
-      localM (updRelM (addExprs (prs ++ lessDotExprs argsLks)) <=< 
-                      liftError . appendLocks argsLks)
-             checkFeatBody
+      localM (updRelM (addExprs (prs ++ lessDotExprs argsLks)) .
+              updRel (\o -> foldr (\ p r -> add r p) o localProcs) .
+              updLocks (++ localProcs ++ featureEnsLk feat))
+        checkFeatBody
 
     checkFeatBody =
-      let fImpl = featureImpl feat
-          upd   = local (updLocals feat . updArgs feat . addResult feat)
-          updM  = localM (updRelM (liftError . addDecls (featureLocalProcs fImpl)))
-      in (upd . updM) (lift . f . featureBody $ fImpl)
+      let
+          upd   = local (updLocals feat .
+                         updArgs feat .
+                         addResult feat)
+          updM  = localM (updRelM (liftError .
+                                   addDecls (featureLocalProcs fImpl)))
+      in (upd . updM) (lift . f $ body)
 
 
 

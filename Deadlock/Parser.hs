@@ -60,8 +60,8 @@ errorTag = orderCycle <|> choice errorParsers
   where  
     errors = [("ArgNotLessTarget", ArgNotLessTarget),
               ("ArgNotInContextLocks", ArgNotInContextLocks),
-              ("CallLocksNotLessContextLocks", CallLocksNotLessContextLocks),
-              ("ProcNotInScope", ProcNotInScope)
+              ("CallLocksNotLessContextLocks", CallLocksNotLessContextLocks)
+--              ("ProcNotInScope", ProcNotInScope)
              ]
 
     procP = fmap Proc identifier

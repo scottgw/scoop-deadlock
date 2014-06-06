@@ -7,6 +7,7 @@ import Control.Monad.Reader
 
 import qualified Data.Map as M
 import Data.Map (Map)
+import qualified Data.Set as Set
 import Data.Maybe (listToMaybe)
 
 import Text.Parsec.Pos
@@ -35,7 +36,7 @@ appendLocks :: [Proc] -> ProcDeadCtx -> Dead ProcDeadCtx
 appendLocks ls ctx =
     case outScope of
       []   -> return $ ctx {ctxLocks = (ctxLocks ctx) ++ ls}
-      (v:_) -> throwPosError (ProcNotInScope v)
+      (v:_) -> throwPosError (ProcNotInScope v (Set.toList (dom r)))
     where 
       outScope = filter (not . inDom r) ls
       r        = ctxRel ctx
@@ -53,6 +54,9 @@ updRelM f ctx = do
   
 updVars :: (Map String Typ -> Map String Typ) -> ProcDeadCtx -> ProcDeadCtx
 updVars f ctx = ctx {ctxVars = f (ctxVars ctx)}
+
+updLocks :: ([Proc] -> [Proc]) -> ProcDeadCtx -> ProcDeadCtx
+updLocks f ctx = ctx {ctxLocks = f (ctxLocks ctx)}
 
 getRel :: Dead (ProcOrder)
 getRel = fmap ctxRel ask
@@ -116,4 +120,4 @@ checkInScope :: (MonadError PosDeadError m, MonadReader ProcDeadCtx m)
                 => ProcOrder -> Proc -> m ()
 checkInScope r p
   | inDom r p = return () 
-  | otherwise = throwPosError (ProcNotInScope p)
+  | otherwise = throwPosError (ProcNotInScope p (Set.toList (dom r)))

@@ -60,7 +60,7 @@ validArgs trg args = do
 
   let
     checkArgLessTarget a = guardThrow (less r a trg) (ArgNotLessTarget a)
-    checkInLocks a = guardThrow (a == Dot || a `elem` lks) (ArgNotInContextLocks a)
+    checkInLocks a = guardThrow (a == Dot || a `elem` lks) (ArgNotInContextLocks $ trace (show lks) a)
 
   mapM_ checkArgLessTarget args
   mapM_ checkInLocks args

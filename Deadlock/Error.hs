@@ -21,7 +21,7 @@ parseErrorToDead :: ParseError -> PosDeadError
 parseErrorToDead e = 
     attachPos' (errorPos e) (DeadErrorString (show e))
 
-data DeadError = ProcNotInScope Proc
+data DeadError = ProcNotInScope Proc [Proc]
                | NoClassProc
                | InstProcsMismatch
                | OrderCycle Proc Proc ProcOrder

@@ -18,6 +18,7 @@ feature
 		do
 			make_sock (a_sock)
 			filename := a_filename
+    -- ensure-locks <p>
 		end
 
 	send_response

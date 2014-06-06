@@ -37,6 +37,7 @@ feature
         
         content := a_uri.last_string
       end
+    -- ensure-locks <p>
     end
   
   redirect_to_content (s : STRING)

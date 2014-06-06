@@ -9,6 +9,7 @@ import Data.List (nub)
 import Data.Monoid
 
 import AST.Position
+import AST.Decl
 import AST.Typ
 import AST.Feature
 import AST.Stmt
@@ -71,17 +72,25 @@ exprOrd e' = snd `fmap` exprProcOrd e'
 
     unposExpr :: UnPosTExpr -> Dead (Proc, ProcOrderMonoid)
     unposExpr (Call trg fName args _) = do
-      (_trgP, trgOrd) <- exprProcOrd trg -- FIXME: should we use the target proc to instantiate the feature?
+      (trgP, trgOrd) <- exprProcOrd trg -- FIXME: should we use the target proc to instantiate the feature?
 
       argsProcsLocks <- mapM exprProcOrd args
       let (argsP, argsLocks) = unzip argsProcsLocks
 
       feat <- callWithArgs argsP `fmap` lookupFeature (texpr trg) fName
 
-      callOrd <- createExprOrder (featureReqLk feat) (unProcOrderMonoid mempty)
-      let callOrd' = ProcOrderMonoid callOrd
+      callOrd <- createExprOrder (featureReqLk feat)
+                                 (unProcOrderMonoid mempty)
+      trgLessDot <- createExprOrder [LessThan trgP Dot]
+                                    (unProcOrderMonoid mempty)
 
-      return (typProc $ featureResult feat, trgOrd <> mconcat argsLocks <> callOrd')
+      let callOrd' = ProcOrderMonoid callOrd
+          trgLessDot' = ProcOrderMonoid trgLessDot
+
+      return (typProc $ featureResult feat,
+              trgOrd <> mconcat argsLocks <> callOrd' <> trgLessDot'
+              
+             )
     unposExpr (BinOpExpr _ e1 e2 _) =
       do (_, ord1) <- exprProcOrd e1
          (_, ord2) <- exprProcOrd e2

@@ -167,8 +167,21 @@
             <property name="visible">True</property>
             <property name="layout_style">start</property>
             <child>
-              <object class="GtkButton" id="compButton">
+              <object class="GtkButton" id="compSkipReconstructButton">
                 <property name="label" translatable="yes">Compile</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="compDoReconstructButton">
+                <property name="label" translatable="yes">Compile (reconstruct)</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>

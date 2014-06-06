@@ -1,9 +1,14 @@
-module Deadlock.Class (deadCheck, deadCheckFile) where
+module Deadlock.Class
+       (deadCheck,
+        deadCheckFile,
+        ReconstructOpt (..)
+       ) where
 
 import Control.Monad.Error
 import Control.Monad.Reader
 
 import qualified Data.ByteString as B
+import qualified Data.Set as Set
 
 import Text.Parsec.Error
 
@@ -60,15 +65,22 @@ reconstructClass c =
                     featureEnsLk = featureEnsLk f ++ lks})
 
     toProcExprs :: OrderRel Proc -> [ProcExpr]
-    toProcExprs ord = undefined
+    toProcExprs ord =
+      let d = Set.toList (dom ord)
+      in [LessThan x y | x <- d, y <- d, less ord x y]
 
-checkClass :: TClass -> DeadFeature ()
-checkClass = reconstructClass >=> overClass (mapM_ checkFeature)
+checkClass :: ReconstructOpt -> TClass -> DeadFeature ()
+checkClass opt = optRecon >=> overClass (mapM_ checkFeature)
+  where
+    optRecon =
+      case opt of
+        DoReconstruct -> reconstructClass
+        _ -> return
 
-checkClassM :: [ClasInterface] -> TClass -> Either [PosDeadError] ()
-checkClassM cis c = 
+checkClassM :: ReconstructOpt -> [ClasInterface] -> TClass -> Either [PosDeadError] ()
+checkClassM opt cis c = 
     let ctx = mkDeadCtx cis startingRel
-    in case runFeature (checkClass c) ctx of
+    in case runFeature (checkClass opt c) ctx of
          (Right _, []) -> Right ()
          (_, e:es)   -> Left (e:es)
          (Left e, _  ) -> Left [e]
@@ -77,16 +89,18 @@ stringToError :: Clas -> String -> [PosDeadError]
 stringToError clas  = (:[]) . attachPos' (initialPos file) . DeadErrorString
     where file = className clas ++ ".e"
 
-deadCheck' :: Clas -> [ClasInterface] -> Maybe [PosDeadError]
-deadCheck' c cis = 
+data ReconstructOpt = DoReconstruct | SkipReconstruct deriving Show
+
+deadCheck' :: ReconstructOpt -> Clas -> [ClasInterface] -> Maybe [PosDeadError]
+deadCheck' opt c cis = 
     let tc = either (Left . stringToError c) Right (typeCheckClassM cis c)
-    in either Just (const Nothing) (tc >>= checkClassM cis)
+    in either Just (const Nothing) (tc >>= checkClassM opt cis)
 
-deadCheckFile :: FilePath -> IO (Maybe [PosDeadError])
-deadCheckFile = deadCheck <=< B.readFile
+deadCheckFile :: ReconstructOpt -> FilePath -> IO (Maybe [PosDeadError])
+deadCheckFile opt = deadCheck opt <=< B.readFile
 
-deadCheck :: B.ByteString -> IO (Maybe [PosDeadError])
-deadCheck bs =
+deadCheck :: ReconstructOpt -> B.ByteString -> IO (Maybe [PosDeadError])
+deadCheck opt bs =
   case parseClass bs of
     Left pe -> return (Just [fromParseError pe])
     Right c -> 
@@ -95,7 +109,7 @@ deadCheck bs =
           interfaces <- depGenInt (className c')
           case interfaces of
             Left e -> return $ Just [parseErrorToDead e]
-            Right cs -> return $ deadCheck' c' (map addImplLocks cs)
+            Right cs -> return $ deadCheck' opt c' (map addImplLocks cs)
 
 fromParseError :: ParseError -> PosDeadError
 fromParseError pe = attachPos' (errorPos pe) (convErr pe)

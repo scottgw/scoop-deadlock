@@ -39,7 +39,7 @@ runTest t@(Test name _) = Ex.catch (runTest' t)
 
 runTest' :: Test -> IO (String, String)
 runTest' (Test name expected) = do
-  results <- deadCheckFile (name ++ ".e")
+  results <- deadCheckFile SkipReconstruct (name ++ ".e")
   (name,) `fmap` response name expected results
 
 -- | An error that doesn't want details about the order

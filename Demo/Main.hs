@@ -38,7 +38,8 @@ main = do
   quit     <- builderGetObject builder castToMenuItem "quit"
 
   statusB  <- builderGetObject builder castToStatusbar "statusbar"
-  cButton  <- builderGetObject builder castToButton "compButton" 
+  compSkipReconButton  <- builderGetObject builder castToButton "compSkipReconstructButton"
+  compDoReconButton  <- builderGetObject builder castToButton "compDoReconstructButton"
   errorBox <- builderGetObject builder castToHBox "errorBox"
 
   srcView  <- builderGetObject builder castToSourceView "sourceView"
@@ -55,9 +56,11 @@ main = do
   save    `onActivateLeaf` saveFile stR
   quit    `onActivateLeaf` mainQuit
 
-  cButton `onClicked`      compAction stR
+  compSkipReconButton `onClicked` compSkipReconstructAction stR
+  compDoReconButton `onClicked` compDoReconstructAction stR
+
   window  `onDestroy`      mainQuit
-          
+
   dragDestSet srcView [] [ActionCopy, ActionMove]
   dragDestAddURITargets srcView
   (srcView `on` dragDataReceived) (dropcall stR)
@@ -204,18 +207,22 @@ setBufferContent stR str = do
 bufferGetText :: SourceBuffer -> IO String
 bufferGetText buff = get buff textBufferText 
 
-compAction :: StateR -> IO ()
-compAction stR = do
+compSkipReconstructAction = compAction' SkipReconstruct
+compDoReconstructAction = compAction' DoReconstruct
+
+compAction' :: ReconstructOpt -> StateR -> IO ()
+compAction' opt stR = do
+  print opt
   buff <- stateBuffer stR
   str  <- bufferGetText buff
-
+  
   stat <- stateStatusbar stR
   cId  <- statusbarGetContextId stat "Compile"
 
   errs <- stateErrors stR
   listStoreClear errs
 
-  dr <- deadCheck (B.pack str)
+  dr <- deadCheck opt (B.pack str)
 
   case dr of
     Just es -> do 

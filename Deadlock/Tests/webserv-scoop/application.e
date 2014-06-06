@@ -45,7 +45,7 @@ feature {NONE} -- Initialization
          sock.close
       end
 
-   run (h : separate <q> <p> REQUEST_HANDLER)
+   run (h : separate <q> <p> REQUEST_HANDLER) <q>
       require-locks
       < p < q >
       do
